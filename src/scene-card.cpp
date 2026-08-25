@@ -123,6 +123,14 @@ void SceneCard::updateMediaProgress()
         mediaSlider_->hide();
         return;
     }
+
+    const obs_media_state state = obs_source_media_get_state(mediaSource_);
+    if (state == OBS_MEDIA_STATE_PLAYING)
+        thumbnailPrepared_ = false;
+    else if (!active_ && !thumbnailPrepared_ && !thumbnailPreparing_ &&
+             (state == OBS_MEDIA_STATE_STOPPED || state == OBS_MEDIA_STATE_ENDED))
+        prepareMediaThumbnail();
+
     mediaSlider_->show();
     const int value = static_cast<int>(
         qBound<int64_t>(int64_t{0}, time * 1000 / duration, int64_t{1000}));
@@ -130,6 +138,32 @@ void SceneCard::updateMediaProgress()
     mediaSlider_->setToolTip(QStringLiteral("%1 / %2초")
         .arg(time / 1000.0, 0, 'f', 1)
         .arg(duration / 1000.0, 0, 'f', 1));
+}
+
+void SceneCard::prepareMediaThumbnail()
+{
+    if (!mediaSource_)
+        return;
+
+    thumbnailPreparing_ = true;
+    const bool wasMuted = obs_source_muted(mediaSource_);
+    obs_source_set_muted(mediaSource_, true);
+    obs_source_media_restart(mediaSource_);
+
+    QTimer::singleShot(120, this, [this, wasMuted] {
+        if (!mediaSource_)
+            return;
+        if (active_) {
+            obs_source_set_muted(mediaSource_, wasMuted);
+            thumbnailPreparing_ = false;
+            return;
+        }
+        obs_source_media_set_time(mediaSource_, 0);
+        obs_source_media_play_pause(mediaSource_, true);
+        obs_source_set_muted(mediaSource_, wasMuted);
+        thumbnailPrepared_ = true;
+        thumbnailPreparing_ = false;
+    });
 }
 
 void SceneCard::seekMedia()
@@ -162,7 +196,7 @@ void SceneCard::setActive(bool active)
 void SceneCard::applyStyle()
 {
     setStyleSheet(active_
-        ? "QFrame#sceneCard{background:#202020;border:2px solid #ff2020;border-radius:3px;}"
+        ? "QFrame#sceneCard{background:#202020;border:2px solid #ff2020;border-radius:0;}"
           "QLabel{color:#fff;background:#262626;font-weight:600;border:0;}"
         : "QFrame#sceneCard{background:#202020;border:1px solid #555;border-radius:3px;}"
           "QLabel{color:#ddd;background:#262626;font-weight:600;border:0;}");

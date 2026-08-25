@@ -1,0 +1,53 @@
+name: Build Windows DLL
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout plugin
+        uses: actions/checkout@v4
+
+      - name: Checkout official OBS plugin template
+        uses: actions/checkout@v4
+        with:
+          repository: obsproject/obs-plugintemplate
+          ref: master
+          path: .obs-template
+
+      - name: Install official build helpers
+        shell: pwsh
+        run: |
+          Copy-Item -Recurse -Force .obs-template/cmake ./cmake
+          New-Item -ItemType Directory -Force .github/actions | Out-Null
+          New-Item -ItemType Directory -Force .github/scripts | Out-Null
+          Copy-Item -Recurse -Force .obs-template/.github/actions/* .github/actions/
+          Copy-Item -Recurse -Force .obs-template/.github/scripts/* .github/scripts/
+
+      - name: Build plugin
+        uses: ./.github/actions/build-plugin
+        with:
+          target: x64
+          config: RelWithDebInfo
+
+      - name: Collect DLL
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifact | Out-Null
+          $Dll = Get-ChildItem -Path build_x64 -Filter vmix-dashboard-core.dll -Recurse | Select-Object -First 1
+          if (-not $Dll) { throw "vmix-dashboard-core.dll was not produced" }
+          Copy-Item $Dll.FullName artifact/vmix-dashboard-core.dll
+
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: vmix-dashboard-core-windows-x64
+          path: artifact/vmix-dashboard-core.dll
+          if-no-files-found: error

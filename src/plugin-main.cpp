@@ -12,7 +12,7 @@ bool obs_module_load(void)
 {
     dashboard = new DashboardWidget();
     const bool added = obs_frontend_add_dock_by_id(
-        "vmix-dashboard-core", "vMix Dashboard", dashboard);
+        "vmix-dashboard-core", "미리보기", dashboard);
 
     if (!added) {
         blog(LOG_ERROR, "[vMix Dashboard Core] Failed to register dock");
@@ -33,7 +33,7 @@ void obs_module_unload(void)
 
 const char *obs_module_name(void)
 {
-    return "vMix Dashboard Core";
+    return "미리보기";
 }
 
 const char *obs_module_description(void)

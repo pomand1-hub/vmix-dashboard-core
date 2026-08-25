@@ -33,6 +33,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
 
 target_compile_features(${CMAKE_PROJECT_NAME} PRIVATE cxx_std_17)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE UNICODE _UNICODE)
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON)
 

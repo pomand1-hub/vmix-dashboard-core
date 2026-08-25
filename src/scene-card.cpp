@@ -9,11 +9,38 @@
 #include <QLabel>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QSlider>
+#include <QTimer>
 #include <QVBoxLayout>
+#include <QtGlobal>
 #include <utility>
 
 namespace {
 constexpr auto MimeType = "application/x-vmix-dashboard-scene";
+
+struct MediaSearch {
+    obs_source_t *source = nullptr;
+};
+
+bool findMediaItem(obs_scene_t *, obs_sceneitem_t *item, void *data)
+{
+    auto *search = static_cast<MediaSearch *>(data);
+    obs_source_t *source = obs_sceneitem_get_source(item);
+    if (!source)
+        return true;
+
+    if (obs_source_media_get_duration(source) > 0) {
+        search->source = obs_source_get_ref(source);
+        return false;
+    }
+
+    if (obs_scene_t *nested = obs_scene_from_source(source)) {
+        obs_scene_enum_items(nested, findMediaItem, data);
+        if (search->source)
+            return false;
+    }
+    return true;
+}
 }
 
 SceneCard::SceneCard(obs_source_t *source, const QString &name, QWidget *parent)
@@ -22,7 +49,10 @@ SceneCard::SceneCard(obs_source_t *source, const QString &name, QWidget *parent)
     setObjectName("sceneCard");
     setAcceptDrops(true);
     setCursor(Qt::PointingHandCursor);
-    setFixedSize(170, 118);
+    MediaSearch search;
+    if (obs_scene_t *scene = obs_scene_from_source(source))
+        obs_scene_enum_items(scene, findMediaItem, &search);
+    mediaSource_ = search.source;
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(2, 2, 2, 2);
@@ -37,9 +67,72 @@ SceneCard::SceneCard(obs_source_t *source, const QString &name, QWidget *parent)
     layout->addWidget(preview_);
     layout->addWidget(label_);
 
+    if (mediaSource_) {
+        mediaSlider_ = new QSlider(Qt::Horizontal, this);
+        mediaSlider_->setRange(0, 1000);
+        mediaSlider_->setFixedHeight(18);
+        mediaSlider_->setToolTip(QStringLiteral("영상 재생 위치"));
+        layout->addWidget(mediaSlider_);
+
+        connect(mediaSlider_, &QSlider::sliderPressed, this, [this] { seeking_ = true; });
+        connect(mediaSlider_, &QSlider::sliderReleased, this, [this] {
+            seekMedia();
+            seeking_ = false;
+        });
+
+        mediaTimer_ = new QTimer(this);
+        connect(mediaTimer_, &QTimer::timeout, this, [this] { updateMediaProgress(); });
+        mediaTimer_->start(200);
+        updateMediaProgress();
+    }
+
     preview_->installEventFilter(this);
     label_->installEventFilter(this);
+    setCardWidth(170);
     applyStyle();
+}
+
+SceneCard::~SceneCard()
+{
+    if (mediaSource_)
+        obs_source_release(mediaSource_);
+}
+
+void SceneCard::setCardWidth(int width)
+{
+    width = qMax(120, width);
+    const int previewWidth = width - 4;
+    const int previewHeight = qMax(68, qRound(previewWidth * 9.0 / 16.0));
+    preview_->setFixedSize(previewWidth, previewHeight);
+    const int sliderHeight = mediaSlider_ ? 18 : 0;
+    setFixedSize(width, previewHeight + 25 + sliderHeight);
+}
+
+void SceneCard::updateMediaProgress()
+{
+    if (!mediaSource_ || !mediaSlider_ || seeking_)
+        return;
+    const int64_t duration = obs_source_media_get_duration(mediaSource_);
+    const int64_t time = obs_source_media_get_time(mediaSource_);
+    if (duration <= 0) {
+        mediaSlider_->hide();
+        return;
+    }
+    mediaSlider_->show();
+    const int value = static_cast<int>(qBound<int64_t>(0, time * 1000 / duration, 1000));
+    mediaSlider_->setValue(value);
+    mediaSlider_->setToolTip(QStringLiteral("%1 / %2초")
+        .arg(time / 1000.0, 0, 'f', 1)
+        .arg(duration / 1000.0, 0, 'f', 1));
+}
+
+void SceneCard::seekMedia()
+{
+    if (!mediaSource_ || !mediaSlider_)
+        return;
+    const int64_t duration = obs_source_media_get_duration(mediaSource_);
+    if (duration > 0)
+        obs_source_media_set_time(mediaSource_, duration * mediaSlider_->value() / 1000);
 }
 
 void SceneCard::setActivateCallback(ActivateCallback callback)

@@ -21,8 +21,8 @@
   },
   "platformConfig": {"macos": {"bundleId": "com.openai.vmix-dashboard-core"}},
   "name": "vmix-dashboard-core",
-  "displayName": "vMix Dashboard Core",
-  "version": "0.1.0",
+  "displayName": "미리보기",
+  "version": "0.2.0",
   "author": "OpenAI",
   "website": "https://github.com/pomand1-hub/vmix-dashboard-core",
   "email": "noreply@example.com"

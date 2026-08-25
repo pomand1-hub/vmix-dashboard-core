@@ -17,6 +17,7 @@
 
 namespace {
 constexpr auto MimeType = "application/x-vmix-dashboard-scene";
+constexpr int MediaRowHeight = 18;
 
 struct MediaSearch {
     obs_source_t *source = nullptr;
@@ -70,7 +71,7 @@ SceneCard::SceneCard(obs_source_t *source, const QString &name, QWidget *parent)
     if (mediaSource_) {
         mediaSlider_ = new QSlider(Qt::Horizontal, this);
         mediaSlider_->setRange(0, 1000);
-        mediaSlider_->setFixedHeight(18);
+        mediaSlider_->setFixedHeight(MediaRowHeight);
         mediaSlider_->setToolTip(QStringLiteral("영상 재생 위치"));
         layout->addWidget(mediaSlider_);
 
@@ -84,6 +85,9 @@ SceneCard::SceneCard(obs_source_t *source, const QString &name, QWidget *parent)
         connect(mediaTimer_, &QTimer::timeout, this, [this] { updateMediaProgress(); });
         mediaTimer_->start(200);
         updateMediaProgress();
+    } else {
+        // Keep every card the same height, even when no seek bar is needed.
+        layout->addSpacing(MediaRowHeight);
     }
 
     preview_->installEventFilter(this);
@@ -100,12 +104,11 @@ SceneCard::~SceneCard()
 
 void SceneCard::setCardWidth(int width)
 {
-    width = qMax(120, width);
+    width = qMax(80, width);
     const int previewWidth = width - 4;
-    const int previewHeight = qMax(68, qRound(previewWidth * 9.0 / 16.0));
+    const int previewHeight = qMax(43, qRound(previewWidth * 9.0 / 16.0));
     preview_->setFixedSize(previewWidth, previewHeight);
-    const int sliderHeight = mediaSlider_ ? 18 : 0;
-    setFixedSize(width, previewHeight + 25 + sliderHeight);
+    setFixedSize(width, previewHeight + 25 + MediaRowHeight);
 }
 
 void SceneCard::updateMediaProgress()

@@ -8,6 +8,7 @@
 
 class QGridLayout;
 class QScrollArea;
+class QSlider;
 class QTimer;
 class SceneCard;
 
@@ -29,11 +30,14 @@ private:
     QString settingsKey() const;
     QStringList loadOrder() const;
     void saveOrder() const;
+    void setPreviewWidth(int width);
 
     QScrollArea *scroll_ = nullptr;
     QWidget *gridHost_ = nullptr;
     QGridLayout *grid_ = nullptr;
     QTimer *activeTimer_ = nullptr;
+    QSlider *sizeSlider_ = nullptr;
+    int previewWidth_ = 170;
     QStringList order_;
     QHash<QString, SceneCard *> cards_;
 };

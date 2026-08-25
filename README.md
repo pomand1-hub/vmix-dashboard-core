@@ -1,4 +1,4 @@
-# vMix Dashboard Core for OBS 32.2.2
+# 미리보기 for OBS 32.2.2
 
 Windows 64-bit OBS dock plugin providing:
 
@@ -7,6 +7,8 @@ Windows 64-bit OBS dock plugin providing:
 - Red border for the active scene
 - Drag a card directly onto another card to reorder the dashboard only
 - Per-scene-collection order persistence across OBS restarts
+- Adjustable preview-card size
+- Seek bar when a scene contains a playable media source
 - New scenes appended automatically; deleted scenes removed automatically
 
 The plugin never changes the order of OBS's built-in Scenes dock.

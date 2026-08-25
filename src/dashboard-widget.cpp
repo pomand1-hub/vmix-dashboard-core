@@ -2,10 +2,13 @@
 #include "scene-card.hpp"
 
 #include <QGridLayout>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QMetaObject>
 #include <QResizeEvent>
 #include <QScrollArea>
 #include <QSettings>
+#include <QSlider>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QtAlgorithms>
@@ -19,6 +22,21 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
 
     auto *root = new QVBoxLayout(this);
     root->setContentsMargins(4, 4, 4, 4);
+
+    auto *sizeRow = new QHBoxLayout();
+    auto *sizeLabel = new QLabel(QStringLiteral("크기"), this);
+    sizeSlider_ = new QSlider(Qt::Horizontal, this);
+    sizeSlider_->setRange(130, 360);
+    QSettings settings("OpenAI", "vMixDashboardCore");
+    previewWidth_ = settings.value("previewWidth", 170).toInt();
+    sizeSlider_->setValue(previewWidth_);
+    sizeRow->addWidget(sizeLabel);
+    sizeRow->addWidget(sizeSlider_);
+    root->addLayout(sizeRow);
+
+    connect(sizeSlider_, &QSlider::valueChanged, this, [this](int width) {
+        setPreviewWidth(width);
+    });
     scroll_ = new QScrollArea(this);
     scroll_->setWidgetResizable(true);
     scroll_->setFrameShape(QFrame::NoFrame);
@@ -90,6 +108,7 @@ void DashboardWidget::refreshScenes()
         obs_source_release(source);
         card->setActivateCallback([this](const QString &scene) { activateScene(scene); });
         card->setReorderCallback([this](const QString &from, const QString &to) { moveScene(from, to); });
+        card->setCardWidth(previewWidth_);
         cards_.insert(name, card);
     }
 
@@ -104,7 +123,7 @@ void DashboardWidget::rebuildGrid()
     while (QLayoutItem *item = grid_->takeAt(0))
         delete item;
 
-    const int cardWidth = 175;
+    const int cardWidth = previewWidth_ + 5;
     const int columns = qMax(1, scroll_->viewport()->width() / cardWidth);
     int index = 0;
     for (const QString &name : order_) {
@@ -115,6 +134,16 @@ void DashboardWidget::rebuildGrid()
         ++index;
     }
     gridHost_->adjustSize();
+}
+
+void DashboardWidget::setPreviewWidth(int width)
+{
+    previewWidth_ = width;
+    for (SceneCard *card : cards_)
+        card->setCardWidth(previewWidth_);
+    rebuildGrid();
+    QSettings settings("OpenAI", "vMixDashboardCore");
+    settings.setValue("previewWidth", previewWidth_);
 }
 
 void DashboardWidget::resizeEvent(QResizeEvent *event)

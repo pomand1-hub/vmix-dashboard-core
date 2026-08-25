@@ -7,7 +7,8 @@ Windows 64-bit OBS dock plugin providing:
 - Red border for the active scene
 - Drag a card directly onto another card to reorder the dashboard only
 - Per-scene-collection order persistence across OBS restarts
-- Adjustable preview-card size
+- Adjustable preview-card size (80-360 px)
+- Uniform card and thumbnail dimensions for scenes with or without media
 - Seek bar when a scene contains a playable media source
 - New scenes appended automatically; deleted scenes removed automatically
 
@@ -39,11 +40,9 @@ plugin directory before testing this one.
 
 ## Use
 
-Open OBS, then enable **Docks > vMix Dashboard**. Click a card to switch scenes.
+Open OBS, then enable **Docks > 미리보기**. Click a card to switch scenes.
 Hold the left mouse button on any part of a card, drag it, and drop it directly
 on another card. The new dashboard order is saved automatically.
 
-## Current scope
-
-This is the requested core version. Media playback controls, scene creation,
-scene deletion, and zoom controls are intentionally excluded.
+Scenes containing a playable media source show a seek bar. Other scenes reserve
+the same row height so all cards stay aligned.

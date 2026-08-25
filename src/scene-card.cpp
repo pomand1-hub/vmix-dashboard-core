@@ -119,7 +119,8 @@ void SceneCard::updateMediaProgress()
         return;
     }
     mediaSlider_->show();
-    const int value = static_cast<int>(qBound<int64_t>(0, time * 1000 / duration, 1000));
+    const int value = static_cast<int>(
+        qBound<int64_t>(int64_t{0}, time * 1000 / duration, int64_t{1000}));
     mediaSlider_->setValue(value);
     mediaSlider_->setToolTip(QStringLiteral("%1 / %2초")
         .arg(time / 1000.0, 0, 'f', 1)

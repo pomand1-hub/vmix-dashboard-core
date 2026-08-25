@@ -26,7 +26,7 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
     auto *sizeRow = new QHBoxLayout();
     auto *sizeLabel = new QLabel(QStringLiteral("크기"), this);
     sizeSlider_ = new QSlider(Qt::Horizontal, this);
-    sizeSlider_->setRange(130, 360);
+    sizeSlider_->setRange(80, 360);
     QSettings settings("OpenAI", "vMixDashboardCore");
     previewWidth_ = settings.value("previewWidth", 170).toInt();
     sizeSlider_->setValue(previewWidth_);

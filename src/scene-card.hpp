@@ -36,6 +36,7 @@ protected:
 private:
     void beginDrag();
     void applyStyle();
+    void prepareMediaThumbnail();
     void updateMediaProgress();
     void seekMedia();
 
@@ -50,6 +51,8 @@ private:
     bool dragging_ = false;
     bool active_ = false;
     bool seeking_ = false;
+    bool thumbnailPrepared_ = false;
+    bool thumbnailPreparing_ = false;
     ActivateCallback activate_;
     ReorderCallback reorder_;
 };

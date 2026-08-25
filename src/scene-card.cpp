@@ -56,7 +56,9 @@ SceneCard::SceneCard(obs_source_t *source, const QString &name, QWidget *parent)
     mediaSource_ = search.source;
 
     auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(2, 2, 2, 2);
+    // OBS previews use a native child window on Windows. Keep it one pixel
+    // farther inside the frame so it cannot cover the active right border.
+    layout->setContentsMargins(3, 3, 3, 3);
     layout->setSpacing(0);
 
     preview_ = new ObsPreview(source, this);
@@ -105,10 +107,10 @@ SceneCard::~SceneCard()
 void SceneCard::setCardWidth(int width)
 {
     width = qMax(80, width);
-    const int previewWidth = width - 4;
+    const int previewWidth = width - 6;
     const int previewHeight = qMax(43, qRound(previewWidth * 9.0 / 16.0));
     preview_->setFixedSize(previewWidth, previewHeight);
-    setFixedSize(width, previewHeight + 25 + MediaRowHeight);
+    setFixedSize(width, previewHeight + 27 + MediaRowHeight);
 }
 
 void SceneCard::updateMediaProgress()

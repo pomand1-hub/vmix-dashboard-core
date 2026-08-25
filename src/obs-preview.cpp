@@ -14,7 +14,7 @@ ObsPreview::ObsPreview(obs_source_t *source, QWidget *parent) : QWidget(parent)
     setAttribute(Qt::WA_NativeWindow);
     setAttribute(Qt::WA_PaintOnScreen);
     setAttribute(Qt::WA_NoSystemBackground);
-    setMinimumSize(76, 43);
+    setMinimumSize(74, 43);
     setSource(source);
 }
 

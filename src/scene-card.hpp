@@ -8,6 +8,8 @@
 
 class QLabel;
 class ObsPreview;
+class QSlider;
+class QTimer;
 
 class SceneCard final : public QFrame {
 public:
@@ -15,11 +17,13 @@ public:
     using ReorderCallback = std::function<void(const QString &, const QString &)>;
 
     SceneCard(obs_source_t *source, const QString &name, QWidget *parent = nullptr);
+    ~SceneCard() override;
 
     QString sceneName() const { return sceneName_; }
     void setActive(bool active);
     void setActivateCallback(ActivateCallback callback);
     void setReorderCallback(ReorderCallback callback);
+    void setCardWidth(int width);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -32,14 +36,20 @@ protected:
 private:
     void beginDrag();
     void applyStyle();
+    void updateMediaProgress();
+    void seekMedia();
 
     QString sceneName_;
     ObsPreview *preview_ = nullptr;
     QLabel *label_ = nullptr;
+    QSlider *mediaSlider_ = nullptr;
+    QTimer *mediaTimer_ = nullptr;
+    obs_source_t *mediaSource_ = nullptr;
     QPoint pressPos_;
     bool pressed_ = false;
     bool dragging_ = false;
     bool active_ = false;
+    bool seeking_ = false;
     ActivateCallback activate_;
     ReorderCallback reorder_;
 };

@@ -75,9 +75,10 @@ SceneCard::SceneCard(obs_source_t *source, const QString &name, QWidget *parent)
     label_->setAlignment(Qt::AlignCenter);
     label_->setFixedHeight(21);
     auto *cutButton = new QPushButton(QStringLiteral("CUT"), titleHost);
-    cutButton->setFixedSize(42, 21);
+    cutButton->setFixedSize(52, 21);
     cutButton->setToolTip(QStringLiteral("이 장면을 프로그램으로 즉시 전환"));
-    cutButton->setStyleSheet("QPushButton{background:#991b1b;color:white;border:0;font-weight:700;}"
+    cutButton->setStyleSheet("QPushButton{background:#991b1b;color:white;border:0;font-size:10px;"
+                             "font-weight:700;padding:0;margin:0;}"
                              "QPushButton:hover{background:#dc2626;}"
                              "QPushButton:pressed{background:#7f1d1d;}");
     titleLayout->addWidget(label_);

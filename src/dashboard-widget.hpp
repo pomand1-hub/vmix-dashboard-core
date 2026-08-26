@@ -27,6 +27,7 @@ private:
     void updateActiveScene();
     void activateScene(const QString &name);
     void cutScene(const QString &name);
+    void showSceneContextMenu(const QString &name, const QPoint &globalPos);
     void moveScene(const QString &source, const QString &target);
     QString settingsKey() const;
     QStringList loadOrder() const;

@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMetaObject>
+#include <QPushButton>
 #include <QResizeEvent>
 #include <QScrollArea>
 #include <QSettings>
@@ -30,13 +31,21 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
     QSettings settings("OpenAI", "vMixDashboardCore");
     previewWidth_ = settings.value("previewWidth", 170).toInt();
     sizeSlider_->setValue(previewWidth_);
+    auto *cutButton = new QPushButton(QStringLiteral("CUT"), this);
+    cutButton->setFixedWidth(64);
+    cutButton->setToolTip(QStringLiteral("미리보기를 프로그램으로 즉시 전환"));
+    cutButton->setStyleSheet("QPushButton{background:#b91c1c;color:white;font-weight:700;padding:3px 10px;}"
+                             "QPushButton:hover{background:#dc2626;}"
+                             "QPushButton:pressed{background:#7f1d1d;}");
     sizeRow->addWidget(sizeLabel);
     sizeRow->addWidget(sizeSlider_);
+    sizeRow->addWidget(cutButton);
     root->addLayout(sizeRow);
 
     connect(sizeSlider_, &QSlider::valueChanged, this, [this](int width) {
         setPreviewWidth(width);
     });
+    connect(cutButton, &QPushButton::clicked, this, [this] { cutCurrentPreview(); });
     scroll_ = new QScrollArea(this);
     scroll_->setWidgetResizable(true);
     scroll_->setFrameShape(QFrame::NoFrame);
@@ -107,6 +116,7 @@ void DashboardWidget::refreshScenes()
         auto *card = new SceneCard(source, name, gridHost_);
         obs_source_release(source);
         card->setActivateCallback([this](const QString &scene) { activateScene(scene); });
+        card->setCutCallback([this](const QString &scene) { cutScene(scene); });
         card->setReorderCallback([this](const QString &from, const QString &to) { moveScene(from, to); });
         card->setCardWidth(previewWidth_);
         cards_.insert(name, card);
@@ -157,8 +167,31 @@ void DashboardWidget::activateScene(const QString &name)
     obs_source_t *source = obs_get_source_by_name(name.toUtf8().constData());
     if (!source)
         return;
+    if (obs_frontend_preview_program_mode_active())
+        obs_frontend_set_current_preview_scene(source);
+    else
+        obs_frontend_set_current_scene(source);
+    obs_source_release(source);
+}
+
+void DashboardWidget::cutScene(const QString &name)
+{
+    obs_source_t *source = obs_get_source_by_name(name.toUtf8().constData());
+    if (!source)
+        return;
     obs_frontend_set_current_scene(source);
     obs_source_release(source);
+}
+
+void DashboardWidget::cutCurrentPreview()
+{
+    if (!obs_frontend_preview_program_mode_active())
+        return;
+    obs_source_t *preview = obs_frontend_get_current_preview_scene();
+    if (!preview)
+        return;
+    obs_frontend_set_current_scene(preview);
+    obs_source_release(preview);
 }
 
 void DashboardWidget::updateActiveScene()

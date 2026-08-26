@@ -2,6 +2,7 @@
 #include "obs-preview.hpp"
 
 #include <QApplication>
+#include <QContextMenuEvent>
 #include <QDrag>
 #include <QDragEnterEvent>
 #include <QDropEvent>
@@ -214,6 +215,11 @@ void SceneCard::setCutCallback(CutCallback callback)
     cut_ = std::move(callback);
 }
 
+void SceneCard::setContextCallback(ContextCallback callback)
+{
+    context_ = std::move(callback);
+}
+
 void SceneCard::setReorderCallback(ReorderCallback callback)
 {
     reorder_ = std::move(callback);
@@ -305,9 +311,23 @@ void SceneCard::resizeEvent(QResizeEvent *event)
         rightIndicator_->raise();
 }
 
+void SceneCard::contextMenuEvent(QContextMenuEvent *event)
+{
+    if (context_) {
+        context_(sceneName_, event->globalPos());
+        event->accept();
+        return;
+    }
+    QFrame::contextMenuEvent(event);
+}
+
 bool SceneCard::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == preview_ || watched == label_) {
+        if (event->type() == QEvent::ContextMenu) {
+            contextMenuEvent(static_cast<QContextMenuEvent *>(event));
+            return event->isAccepted();
+        }
         auto *mouse = dynamic_cast<QMouseEvent *>(event);
         if (mouse) {
             const QPoint cardPos = mapFromGlobal(mouse->globalPosition().toPoint());

@@ -14,6 +14,7 @@ class QTimer;
 class SceneCard final : public QFrame {
 public:
     using ActivateCallback = std::function<void(const QString &)>;
+    using CutCallback = std::function<void(const QString &)>;
     using ReorderCallback = std::function<void(const QString &, const QString &)>;
 
     SceneCard(obs_source_t *source, const QString &name, QWidget *parent = nullptr);
@@ -22,6 +23,7 @@ public:
     QString sceneName() const { return sceneName_; }
     void setActive(bool active);
     void setActivateCallback(ActivateCallback callback);
+    void setCutCallback(CutCallback callback);
     void setReorderCallback(ReorderCallback callback);
     void setCardWidth(int width);
 
@@ -29,6 +31,8 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -45,6 +49,7 @@ private:
     QLabel *label_ = nullptr;
     QSlider *mediaSlider_ = nullptr;
     QTimer *mediaTimer_ = nullptr;
+    QWidget *rightIndicator_ = nullptr;
     obs_source_t *mediaSource_ = nullptr;
     QPoint pressPos_;
     bool pressed_ = false;
@@ -54,5 +59,6 @@ private:
     bool thumbnailPrepared_ = false;
     bool thumbnailPreparing_ = false;
     ActivateCallback activate_;
+    CutCallback cut_;
     ReorderCallback reorder_;
 };

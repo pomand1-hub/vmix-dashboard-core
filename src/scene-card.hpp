@@ -22,6 +22,7 @@ public:
 
     QString sceneName() const { return sceneName_; }
     void setActive(bool active);
+    void setPreviewActive(bool active);
     void setActivateCallback(ActivateCallback callback);
     void setCutCallback(CutCallback callback);
     void setReorderCallback(ReorderCallback callback);
@@ -55,6 +56,7 @@ private:
     bool pressed_ = false;
     bool dragging_ = false;
     bool active_ = false;
+    bool previewActive_ = false;
     bool seeking_ = false;
     bool thumbnailPrepared_ = false;
     bool thumbnailPreparing_ = false;

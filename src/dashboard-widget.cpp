@@ -5,7 +5,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMetaObject>
-#include <QPushButton>
 #include <QResizeEvent>
 #include <QScrollArea>
 #include <QSettings>
@@ -31,21 +30,13 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
     QSettings settings("OpenAI", "vMixDashboardCore");
     previewWidth_ = settings.value("previewWidth", 170).toInt();
     sizeSlider_->setValue(previewWidth_);
-    auto *cutButton = new QPushButton(QStringLiteral("CUT"), this);
-    cutButton->setFixedWidth(64);
-    cutButton->setToolTip(QStringLiteral("미리보기를 프로그램으로 즉시 전환"));
-    cutButton->setStyleSheet("QPushButton{background:#b91c1c;color:white;font-weight:700;padding:3px 10px;}"
-                             "QPushButton:hover{background:#dc2626;}"
-                             "QPushButton:pressed{background:#7f1d1d;}");
     sizeRow->addWidget(sizeLabel);
     sizeRow->addWidget(sizeSlider_);
-    sizeRow->addWidget(cutButton);
     root->addLayout(sizeRow);
 
     connect(sizeSlider_, &QSlider::valueChanged, this, [this](int width) {
         setPreviewWidth(width);
     });
-    connect(cutButton, &QPushButton::clicked, this, [this] { cutCurrentPreview(); });
     scroll_ = new QScrollArea(this);
     scroll_->setWidgetResizable(true);
     scroll_->setFrameShape(QFrame::NoFrame);
@@ -82,6 +73,9 @@ void DashboardWidget::frontendEvent(enum obs_frontend_event event, void *data)
         QMetaObject::invokeMethod(self, [self] { self->refreshScenes(); }, Qt::QueuedConnection);
         break;
     case OBS_FRONTEND_EVENT_SCENE_CHANGED:
+    case OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED:
+    case OBS_FRONTEND_EVENT_STUDIO_MODE_ENABLED:
+    case OBS_FRONTEND_EVENT_STUDIO_MODE_DISABLED:
         QMetaObject::invokeMethod(self, [self] { self->updateActiveScene(); }, Qt::QueuedConnection);
         break;
     default:
@@ -183,27 +177,26 @@ void DashboardWidget::cutScene(const QString &name)
     obs_source_release(source);
 }
 
-void DashboardWidget::cutCurrentPreview()
-{
-    if (!obs_frontend_preview_program_mode_active())
-        return;
-    obs_source_t *preview = obs_frontend_get_current_preview_scene();
-    if (!preview)
-        return;
-    obs_frontend_set_current_scene(preview);
-    obs_source_release(preview);
-}
-
 void DashboardWidget::updateActiveScene()
 {
     QString active;
+    QString preview;
     obs_source_t *source = obs_frontend_get_current_scene();
     if (source) {
         active = QString::fromUtf8(obs_source_get_name(source));
         obs_source_release(source);
     }
-    for (auto it = cards_.begin(); it != cards_.end(); ++it)
+    if (obs_frontend_preview_program_mode_active()) {
+        source = obs_frontend_get_current_preview_scene();
+        if (source) {
+            preview = QString::fromUtf8(obs_source_get_name(source));
+            obs_source_release(source);
+        }
+    }
+    for (auto it = cards_.begin(); it != cards_.end(); ++it) {
         it.value()->setActive(it.key() == active);
+        it.value()->setPreviewActive(it.key() == preview && it.key() != active);
+    }
 }
 
 void DashboardWidget::moveScene(const QString &source, const QString &target)

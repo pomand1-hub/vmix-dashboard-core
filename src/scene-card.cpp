@@ -7,9 +7,11 @@
 #include <QDropEvent>
 #include <QEvent>
 #include <QLabel>
+#include <QHBoxLayout>
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QResizeEvent>
+#include <QPushButton>
 #include <QSlider>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -64,12 +66,30 @@ SceneCard::SceneCard(obs_source_t *source, const QString &name, QWidget *parent)
 
     preview_ = new ObsPreview(source, this);
     preview_->setFixedSize(166, 93);
-    label_ = new QLabel(sceneName_, this);
+    auto *titleHost = new QWidget(this);
+    titleHost->setFixedHeight(21);
+    auto *titleLayout = new QHBoxLayout(titleHost);
+    titleLayout->setContentsMargins(0, 0, 0, 0);
+    titleLayout->setSpacing(0);
+    label_ = new QLabel(sceneName_, titleHost);
     label_->setAlignment(Qt::AlignCenter);
     label_->setFixedHeight(21);
+    auto *cutButton = new QPushButton(QStringLiteral("CUT"), titleHost);
+    cutButton->setFixedSize(42, 21);
+    cutButton->setToolTip(QStringLiteral("이 장면을 프로그램으로 즉시 전환"));
+    cutButton->setStyleSheet("QPushButton{background:#991b1b;color:white;border:0;font-weight:700;}"
+                             "QPushButton:hover{background:#dc2626;}"
+                             "QPushButton:pressed{background:#7f1d1d;}");
+    titleLayout->addWidget(label_);
+    titleLayout->addWidget(cutButton);
 
     layout->addWidget(preview_);
-    layout->addWidget(label_);
+    layout->addWidget(titleHost);
+
+    connect(cutButton, &QPushButton::clicked, this, [this] {
+        if (cut_)
+            cut_(sceneName_);
+    });
 
     if (mediaSource_) {
         mediaSlider_ = new QSlider(Qt::Horizontal, this);
@@ -135,7 +155,7 @@ void SceneCard::updateMediaProgress()
     const obs_media_state state = obs_source_media_get_state(mediaSource_);
     if (state == OBS_MEDIA_STATE_PLAYING)
         thumbnailPrepared_ = false;
-    else if (!active_ && !thumbnailPrepared_ && !thumbnailPreparing_ &&
+    else if (!active_ && !previewActive_ && !thumbnailPrepared_ && !thumbnailPreparing_ &&
              (state == OBS_MEDIA_STATE_STOPPED || state == OBS_MEDIA_STATE_ENDED))
         prepareMediaThumbnail();
 
@@ -161,7 +181,7 @@ void SceneCard::prepareMediaThumbnail()
     QTimer::singleShot(120, this, [this, wasMuted] {
         if (!mediaSource_)
             return;
-        if (active_) {
+        if (active_ || previewActive_) {
             obs_source_set_muted(mediaSource_, wasMuted);
             thumbnailPreparing_ = false;
             return;
@@ -206,15 +226,25 @@ void SceneCard::setActive(bool active)
     applyStyle();
 }
 
+void SceneCard::setPreviewActive(bool active)
+{
+    if (previewActive_ == active)
+        return;
+    previewActive_ = active;
+    applyStyle();
+}
+
 void SceneCard::applyStyle()
 {
-    setStyleSheet(active_
-        ? "QFrame#sceneCard{background:#202020;border:2px solid #ff2020;border-radius:0;}"
-          "QLabel{color:#fff;background:#262626;font-weight:600;border:0;}"
-        : "QFrame#sceneCard{background:#202020;border:1px solid #555;border-radius:3px;}"
-          "QLabel{color:#ddd;background:#262626;font-weight:600;border:0;}");
-    rightIndicator_->setVisible(active_);
-    if (active_)
+    const char *borderColor = active_ ? "#ff2020" : (previewActive_ ? "#ffd400" : "#555");
+    const int borderWidth = (active_ || previewActive_) ? 2 : 1;
+    setStyleSheet(QStringLiteral(
+        "QFrame#sceneCard{background:#202020;border:%1px solid %2;border-radius:0;}"
+        "QLabel{color:#fff;background:#262626;font-weight:600;border:0;}")
+        .arg(borderWidth).arg(QString::fromLatin1(borderColor)));
+    rightIndicator_->setStyleSheet(QStringLiteral("background:%1;").arg(QString::fromLatin1(borderColor)));
+    rightIndicator_->setVisible(active_ || previewActive_);
+    if (active_ || previewActive_)
         rightIndicator_->raise();
 }
 
@@ -270,7 +300,7 @@ void SceneCard::resizeEvent(QResizeEvent *event)
 {
     QFrame::resizeEvent(event);
     rightIndicator_->setGeometry(width() - 2, 0, 2, height());
-    if (active_)
+    if (active_ || previewActive_)
         rightIndicator_->raise();
 }
 

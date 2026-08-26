@@ -2,8 +2,11 @@
 #include "scene-card.hpp"
 
 #include <QGridLayout>
+#include <QApplication>
+#include <QContextMenuEvent>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QListWidget>
 #include <QMetaObject>
 #include <QResizeEvent>
 #include <QScrollArea>
@@ -111,6 +114,9 @@ void DashboardWidget::refreshScenes()
         obs_source_release(source);
         card->setActivateCallback([this](const QString &scene) { activateScene(scene); });
         card->setCutCallback([this](const QString &scene) { cutScene(scene); });
+        card->setContextCallback([this](const QString &scene, const QPoint &pos) {
+            showSceneContextMenu(scene, pos);
+        });
         card->setReorderCallback([this](const QString &from, const QString &to) { moveScene(from, to); });
         card->setCardWidth(previewWidth_);
         cards_.insert(name, card);
@@ -175,6 +181,37 @@ void DashboardWidget::cutScene(const QString &name)
         return;
     obs_frontend_set_current_scene(source);
     obs_source_release(source);
+}
+
+void DashboardWidget::showSceneContextMenu(const QString &name, const QPoint &globalPos)
+{
+    auto *mainWindow = static_cast<QWidget *>(obs_frontend_get_main_window());
+    if (!mainWindow)
+        return;
+
+    QListWidget *sceneList = mainWindow->findChild<QListWidget *>(QStringLiteral("scenes"));
+    if (!sceneList) {
+        const auto lists = mainWindow->findChildren<QListWidget *>();
+        for (QListWidget *candidate : lists) {
+            if (!candidate->findItems(name, Qt::MatchExactly).isEmpty()) {
+                sceneList = candidate;
+                break;
+            }
+        }
+    }
+    if (!sceneList)
+        return;
+
+    const auto matches = sceneList->findItems(name, Qt::MatchExactly);
+    if (matches.isEmpty())
+        return;
+
+    QListWidgetItem *item = matches.constFirst();
+    sceneList->setCurrentItem(item);
+    sceneList->scrollToItem(item);
+    const QPoint itemPos = sceneList->visualItemRect(item).center();
+    QContextMenuEvent menuEvent(QContextMenuEvent::Mouse, itemPos, globalPos);
+    QApplication::sendEvent(sceneList->viewport(), &menuEvent);
 }
 
 void DashboardWidget::updateActiveScene()

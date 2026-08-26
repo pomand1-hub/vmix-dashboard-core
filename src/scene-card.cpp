@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QResizeEvent>
 #include <QSlider>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -92,6 +93,11 @@ SceneCard::SceneCard(obs_source_t *source, const QString &name, QWidget *parent)
         layout->addSpacing(MediaRowHeight);
     }
 
+    rightIndicator_ = new QWidget(this);
+    rightIndicator_->setAttribute(Qt::WA_TransparentForMouseEvents);
+    rightIndicator_->setStyleSheet("background:#ff2020;");
+    rightIndicator_->hide();
+
     preview_->installEventFilter(this);
     label_->installEventFilter(this);
     setCardWidth(170);
@@ -111,6 +117,8 @@ void SceneCard::setCardWidth(int width)
     const int previewHeight = qMax(43, qRound(previewWidth * 9.0 / 16.0));
     preview_->setFixedSize(previewWidth, previewHeight);
     setFixedSize(width, previewHeight + 27 + MediaRowHeight);
+    rightIndicator_->setGeometry(width - 2, 0, 2, height());
+    rightIndicator_->raise();
 }
 
 void SceneCard::updateMediaProgress()
@@ -180,6 +188,11 @@ void SceneCard::setActivateCallback(ActivateCallback callback)
     activate_ = std::move(callback);
 }
 
+void SceneCard::setCutCallback(CutCallback callback)
+{
+    cut_ = std::move(callback);
+}
+
 void SceneCard::setReorderCallback(ReorderCallback callback)
 {
     reorder_ = std::move(callback);
@@ -200,6 +213,9 @@ void SceneCard::applyStyle()
           "QLabel{color:#fff;background:#262626;font-weight:600;border:0;}"
         : "QFrame#sceneCard{background:#202020;border:1px solid #555;border-radius:3px;}"
           "QLabel{color:#ddd;background:#262626;font-weight:600;border:0;}");
+    rightIndicator_->setVisible(active_);
+    if (active_)
+        rightIndicator_->raise();
 }
 
 void SceneCard::mousePressEvent(QMouseEvent *event)
@@ -237,6 +253,27 @@ void SceneCard::mouseReleaseEvent(QMouseEvent *event)
     QFrame::mouseReleaseEvent(event);
 }
 
+void SceneCard::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        pressed_ = false;
+        dragging_ = false;
+        if (cut_)
+            cut_(sceneName_);
+        event->accept();
+        return;
+    }
+    QFrame::mouseDoubleClickEvent(event);
+}
+
+void SceneCard::resizeEvent(QResizeEvent *event)
+{
+    QFrame::resizeEvent(event);
+    rightIndicator_->setGeometry(width() - 2, 0, 2, height());
+    if (active_)
+        rightIndicator_->raise();
+}
+
 bool SceneCard::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == preview_ || watched == label_) {
@@ -255,6 +292,10 @@ bool SceneCard::eventFilter(QObject *watched, QEvent *event)
             }
             if (event->type() == QEvent::MouseButtonRelease) {
                 mouseReleaseEvent(&forwarded);
+                return forwarded.isAccepted();
+            }
+            if (event->type() == QEvent::MouseButtonDblClick) {
+                mouseDoubleClickEvent(&forwarded);
                 return forwarded.isAccepted();
             }
         }

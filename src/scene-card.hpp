@@ -15,6 +15,7 @@ class SceneCard final : public QFrame {
 public:
     using ActivateCallback = std::function<void(const QString &)>;
     using CutCallback = std::function<void(const QString &)>;
+    using ContextCallback = std::function<void(const QString &, const QPoint &)>;
     using ReorderCallback = std::function<void(const QString &, const QString &)>;
 
     SceneCard(obs_source_t *source, const QString &name, QWidget *parent = nullptr);
@@ -25,6 +26,7 @@ public:
     void setPreviewActive(bool active);
     void setActivateCallback(ActivateCallback callback);
     void setCutCallback(CutCallback callback);
+    void setContextCallback(ContextCallback callback);
     void setReorderCallback(ReorderCallback callback);
     void setCardWidth(int width);
 
@@ -34,6 +36,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *event) override;
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -62,5 +65,6 @@ private:
     bool thumbnailPreparing_ = false;
     ActivateCallback activate_;
     CutCallback cut_;
+    ContextCallback context_;
     ReorderCallback reorder_;
 };

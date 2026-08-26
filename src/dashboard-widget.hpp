@@ -26,6 +26,8 @@ private:
     void rebuildGrid();
     void updateActiveScene();
     void activateScene(const QString &name);
+    void cutCurrentPreview();
+    void cutScene(const QString &name);
     void moveScene(const QString &source, const QString &target);
     QString settingsKey() const;
     QStringList loadOrder() const;

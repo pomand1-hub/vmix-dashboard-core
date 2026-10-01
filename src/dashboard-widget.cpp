@@ -194,7 +194,7 @@ void DashboardWidget::cutScene(const QString &name)
                                  ? "TransitionToScene" : "SetCurrentScene";
         const bool invoked = QMetaObject::invokeMethod(
             mainWindow, method, Qt::DirectConnection,
-            QGenericArgument("OBSSource", &target), Q_ARG(bool, force));
+            QGenericArgument("OBSSource", &target), QGenericArgument("bool", &force));
         if (!invoked)
             blog(LOG_WARNING, "[vmix-dashboard-core] Immediate CUT unavailable: %s", method);
     }

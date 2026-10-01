@@ -16,6 +16,7 @@
 #include <QVBoxLayout>
 #include <QtAlgorithms>
 #include <algorithm>
+#include <obs.hpp>
 #include <util/platform.h>
 
 DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
@@ -164,13 +165,14 @@ void DashboardWidget::resizeEvent(QResizeEvent *event)
 
 void DashboardWidget::activateScene(const QString &name)
 {
+    if (!obs_frontend_preview_program_mode_active()) {
+        cutScene(name);
+        return;
+    }
     obs_source_t *source = obs_get_source_by_name(name.toUtf8().constData());
     if (!source)
         return;
-    if (obs_frontend_preview_program_mode_active())
-        obs_frontend_set_current_preview_scene(source);
-    else
-        obs_frontend_set_current_scene(source);
+    obs_frontend_set_current_preview_scene(source);
     obs_source_release(source);
 }
 
@@ -179,8 +181,25 @@ void DashboardWidget::cutScene(const QString &name)
     obs_source_t *source = obs_get_source_by_name(name.toUtf8().constData());
     if (!source)
         return;
-    obs_frontend_set_current_scene(source);
+    auto *mainWindow = static_cast<QWidget *>(obs_frontend_get_main_window());
+    if (mainWindow) {
+        // The frontend set-current-scene API uses the selected transition.
+        // Invoke OBS's own forced scene switch instead: it uses
+        // obs_transition_set and bypasses both Fade and scene overrides,
+        // while keeping OBS's Program/Preview bookkeeping intact.
+        // These card callbacks execute on the Qt UI thread.
+        const OBSSource target(source);
+        const bool force = true;
+        const char *method = obs_frontend_preview_program_mode_active()
+                                 ? "TransitionToScene" : "SetCurrentScene";
+        const bool invoked = QMetaObject::invokeMethod(
+            mainWindow, method, Qt::DirectConnection,
+            QGenericArgument("OBSSource", &target), Q_ARG(bool, force));
+        if (!invoked)
+            blog(LOG_WARNING, "[vmix-dashboard-core] Immediate CUT unavailable: %s", method);
+    }
     obs_source_release(source);
+    updateActiveScene();
 }
 
 void DashboardWidget::showSceneContextMenu(const QString &name, const QPoint &globalPos)
